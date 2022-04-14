@@ -1,16 +1,16 @@
-from django.core.paginator import Paginator
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from yatube.settings import NUMBER_POSTS_PER_PAGE
-from posts.models import Post, Group, User, Follow
-from posts.forms import PostForm, CommentForm
+
+from posts.forms import CommentForm, PostForm
+from posts.models import Follow, Group, Post, User
 
 
 def index(request: HttpRequest) -> HttpResponse:
     """Home page."""
-    posts = Post.objects.all()
+    posts = Post.objects.select_related('group').select_related('author').all()
     context = {
         'title': 'Последние обновления на сайте',
         'page_obj': create_paginator(request, posts),
@@ -23,7 +23,7 @@ def index(request: HttpRequest) -> HttpResponse:
 def group_posts(request: HttpRequest, slug: str) -> HttpResponse:
     """Page to display posts of one group."""
     group = get_object_or_404(Group, slug=slug)
-    posts = group.groups.all()
+    posts = group.groups.select_related('author').all()
     context = {
         'group': group,
         'page_obj': create_paginator(request, posts),
@@ -35,7 +35,7 @@ def group_posts(request: HttpRequest, slug: str) -> HttpResponse:
 def profile(request: HttpRequest, username: str) -> HttpResponse:
     """User information page."""
     user = get_object_or_404(User, username=username)
-    posts = user.posts.all()
+    posts = user.posts.select_related('group').all()
     following = None
     if request.user.is_authenticated:
         sub = Follow.objects.filter(author=user, user=request.user)
@@ -123,7 +123,9 @@ def add_comment(request: HttpRequest, post_id: int) -> HttpResponse:
 @login_required
 def follow_index(request):
     """"Subscription page."""
-    posts = Post.objects.filter(author__following__user=request.user)
+    posts = Post.objects.filter(
+        author__following__user=request.user
+    ).select_related('group').select_related('author')
     context = {
         'title': 'Подписки',
         'page_obj': create_paginator(request, posts),
@@ -138,12 +140,10 @@ def profile_follow(request, username):
     user = get_object_or_404(User, username=username)
     if user == request.user:
         return redirect('posts:profile', username=username)
-    if not Follow.objects.filter(author=user, user=request.user):
-        sub = Follow.objects.create(
-            author=user,
-            user=request.user,
-        )
-        sub.save()
+    Follow.objects.get_or_create(
+        author=user,
+        user=request.user,
+    )
     return redirect('posts:profile', username=username)
 
 

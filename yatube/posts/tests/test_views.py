@@ -187,8 +187,7 @@ class PostsPagesTests(TestCase):
         self.assertContains(
             response, '<h5 class="card-header">Добавить комментарий:</h5>'
         )
-        self.guest_client = Client()
-        response = self.guest_client.get(
+        response = self.client.get(
             reverse('posts:post_detail', kwargs={'post_id': self.post.id})
         )
         self.assertNotContains(
@@ -312,19 +311,18 @@ class TestCashIndexPage(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()
         cache.clear()
 
     def test_display_post_after_deletion(self):
         """Testing that a post displays on the index page after deletion
          and doesn't display after clear cash."""
-        response = self.guest_client.get(reverse('posts:index'))
+        response = self.client.get(reverse('posts:index'))
         self.post.delete()
         self.assertContains(
             response, 'Test post display 20 sek on the index page'
         )
         cache.clear()
-        response = self.guest_client.get(reverse('posts:index'))
+        response = self.client.get(reverse('posts:index'))
         self.assertNotContains(
             response, 'Test post display 20 sek on the index page'
         )
@@ -350,9 +348,8 @@ class FollowUnfollowTests(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
-    def test_follow_unfollow_comment(self):
-        """Testing the creation of a new follow record or
-         deletes an unfollow record in the database."""
+    def test_follow(self):
+        """Test to create a new follow record in the database."""
         subscription_count = Follow.objects.count()
         new_subscription = {
             'author': self.user2,
@@ -375,9 +372,13 @@ class FollowUnfollowTests(TestCase):
                 user=self.user,
             ).exists()
         )
-        subscrition = Follow.objects.filter(author=self.user2)
+
+    def test_unfollow(self):
+        """Test to delete an unfollow record in the database."""
+        subscription_count = Follow.objects.count()
+        subscrition = Follow.objects.filter(author=self.user)
         subscrition.delete()
-        self.assertEqual(Follow.objects.count(), subscription_count)
+        self.assertEqual(Follow.objects.count(), subscription_count - 1)
         self.assertFalse(
             Follow.objects.filter(
                 author=self.user2,

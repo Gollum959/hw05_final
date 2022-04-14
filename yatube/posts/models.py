@@ -1,5 +1,5 @@
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 
 from core.models import AutoDateModel
 
@@ -66,7 +66,7 @@ class Comment(AutoDateModel):
         return f'{self.text}'
 
 
-class Follow (models.Model):
+class Follow(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -77,3 +77,9 @@ class Follow (models.Model):
         on_delete=models.CASCADE,
         related_name='follower',
     )
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=['author', 'user'],
+            name='unique_author_user'
+        )]

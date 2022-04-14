@@ -25,7 +25,6 @@ class StaticURLTests(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
@@ -54,14 +53,14 @@ class StaticURLTests(TestCase):
         """Testing page access."""
         task = self.post
         templates_url_user = {
-            reverse('posts:index'): self.guest_client,
+            reverse('posts:index'): self.client,
             reverse(
                 'posts:group', kwargs={'slug': f'{self.group.slug}'}
-            ): self.guest_client,
+            ): self.client,
             reverse('posts:profile', kwargs={'username': f'{task.author}'}):
-            self.guest_client,
+            self.client,
             reverse('posts:post_detail', kwargs={'post_id': task.id}):
-            self.guest_client,
+            self.client,
             reverse('posts:post_edit', kwargs={'post_id': task.id}):
             self.authorized_client,
             reverse('posts:post_create'): self.authorized_client,
@@ -74,7 +73,7 @@ class StaticURLTests(TestCase):
     def test_create_page_redirect_anonymous_on_login_page(self):
         """Testing a redirect from the post creation page of an unauthorized
          user to the authorization page."""
-        response = self.guest_client.get(
+        response = self.client.get(
             reverse('posts:post_create'), follow=True
         )
         self.assertRedirects(response, '/auth/login/?next=/create/')
@@ -86,7 +85,7 @@ class StaticURLTests(TestCase):
         not_author_user = User.objects.create_user(username='NoNone')
         not_author_authorized_client = Client()
         not_author_authorized_client.force_login(not_author_user)
-        response = self.guest_client.get(
+        response = self.client.get(
             reverse('posts:post_edit', kwargs={'post_id': task.id}),
             follow=True
         )
@@ -96,14 +95,14 @@ class StaticURLTests(TestCase):
 
     def test_unexistin_page_return_404(self):
         """Testing unexist page return 404."""
-        response = self.guest_client.get('/unexisting_page/')
+        response = self.client.get('/unexisting_page/')
         self.assertEqual(response.status_code, 404)
 
     def test_create_comment_redirect_anonymous_on_login_page(self):
         """Attempting to access the address where the comment was created will
          redirect an unauthorized user to the authorization page."""
         task = self.post
-        response = self.guest_client.get(
+        response = self.client.get(
             reverse(
                 'posts:add_comment', kwargs={'post_id': task.id}
             )
