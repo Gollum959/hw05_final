@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from posts.models import Post, Group
 
-
 User = get_user_model()
 
 

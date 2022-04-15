@@ -376,8 +376,15 @@ class FollowUnfollowTests(TestCase):
     def test_unfollow(self):
         """Test to delete an unfollow record in the database."""
         subscription_count = Follow.objects.count()
-        subscrition = Follow.objects.filter(author=self.user)
-        subscrition.delete()
+        response = self.authorized_client.post(
+            reverse('posts:profile_unfollow', kwargs={'username': self.user}),
+            follow=True
+        )
+        self.assertRedirects(
+            response, reverse(
+                'posts:profile', kwargs={'username': self.user}
+            )
+        )
         self.assertEqual(Follow.objects.count(), subscription_count - 1)
         self.assertFalse(
             Follow.objects.filter(
